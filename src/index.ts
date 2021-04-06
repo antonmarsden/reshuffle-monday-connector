@@ -126,6 +126,7 @@ const GET_GROUPS_QUERY = `#graphql
 query ($board_ids: [Int]!, $group_ids: [String]) {
   boards (ids: $board_ids) {
     groups (ids: $group_ids) {
+      id
       title
       color
       position
@@ -153,7 +154,7 @@ mutation ($board_id: Int!, $group_id: String, $item_name: String, $column_values
   }
 }`
 
-const UPDATE_ITEM_QUERY = `#graphql
+const CREATE_UPDATE_QUERY = `#graphql
 mutation($item_id: Int!, $body: String!) {
   create_update (item_id: $item_id, body: $body) {
     id
@@ -446,15 +447,10 @@ export default class MondayConnector extends BaseHttpConnector<
     return itemId
   }
 
-  updateItem(
-    boardId: number,
-    groupId: string,
-    itemName: string,
-  ): Promise<MondayApiResponse['data']> {
-    return this.query(UPDATE_ITEM_QUERY, {
+  async createUpdate(boardId: number, body: string): Promise<MondayApiResponse['data']> {
+    return await this.query(CREATE_UPDATE_QUERY, {
       board_id: boardId,
-      group_id: groupId,
-      item_name: itemName,
+      body: body,
     })
   }
 
@@ -501,6 +497,16 @@ export default class MondayConnector extends BaseHttpConnector<
           item_id: ${itemId},
           column_values: ${JSON.stringify(JSON.stringify(newValues))}
         ) {
+          id
+        }
+      }
+    `)
+  }
+
+  async updateItemGroup(itemId: number | string, groupId: string): Promise<void> {
+    await this.query(`
+      mutation {
+        move_item_to_group (item_id: ${itemId}, group_id: ${groupId}) {
           id
         }
       }
